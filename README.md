@@ -1,2 +1,1 @@
-"# aftertickets_backend" 
-"# backend_m2totem" 
+"# backend_m2totem"

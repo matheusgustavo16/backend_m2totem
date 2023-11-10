@@ -4,6 +4,9 @@ import sharp from "sharp";
 import fs from "fs";
 import dayjs from "dayjs";
 import axios from "axios";
+import os from "os";
+
+const TMP_FOLDER = os.tmpdir() || "src/assets/";
 
 const download_image = (url: string, image_path: string) =>
   axios({
@@ -31,14 +34,14 @@ const convertImageToBase64URL = (filename: string, imageType = "jpg") => {
 
 const compositeImages = async (image: string, template: string) => {
   try {
-    await sharp(`src/assets/templates/${template}`)
+    await sharp(`${TMP_FOLDER}/${template}`)
       .resize({
         width: 800,
         height: 600
       })
       .composite([
         {
-          input: `src/assets/proccess/${image}-output.png`,
+          input: `${TMP_FOLDER}/${image}-output.png`,
           top: 0,
           left: 0
         }
@@ -48,7 +51,7 @@ const compositeImages = async (image: string, template: string) => {
         height: 600
       })
       .normalise()
-      .toFile(`src/assets/proccess/${image}-output-template.jpg`);
+      .toFile(`${TMP_FOLDER}/${image}-output-template.jpg`);
   } catch (error) {
     console.log(error);
   }
@@ -56,53 +59,50 @@ const compositeImages = async (image: string, template: string) => {
 
 export const removeBg = async (req: Request, res: Response) => {
   try {
-    const { imageSrc, bgSrc } = req.body;
+    const { imageSrc, bgSrc, phraseSrc } = req.body;
     // SAVE TEMPORARY BACKGROUND PICTURE
     const fileNameTemplate: any = `temp-${dayjs().unix()}.jpg`;
-    await download_image(bgSrc, `src/assets/templates/${fileNameTemplate}`);
+    await download_image(bgSrc, `${TMP_FOLDER}/${fileNameTemplate}`);
     // SAVE TEMPORARY CLIENT PICTURE
     let base64Image = imageSrc.split(";base64,").pop();
     const fileName: any = dayjs().unix();
     await fs.writeFile(
-      `src/assets/proccess/${fileName}.jpg`,
+      `${TMP_FOLDER}/${fileName}.jpg`,
       base64Image,
       { encoding: "base64" },
       function(err) {
         console.log("File created");
       }
     );
-    const input = sharp(`src/assets/proccess/${fileName}.jpg`);
+    const input = sharp(`${TMP_FOLDER}/${fileName}.jpg`);
     const remBg = new Rembg({
       logging: true
     });
     const output = await remBg.remove(input);
-    await output.png().toFile(`src/assets/proccess/${fileName}-output.png`);
+    await output.png().toFile(`${TMP_FOLDER}/${fileName}-output.png`);
     // APLICA O TEMPLATE
     await compositeImages(fileName, fileNameTemplate);
 
     const base64Photo = convertImageToBase64URL(
-      `src/assets/proccess/${fileName}-output-template.jpg`
+      `${TMP_FOLDER}/${fileName}-output-template.jpg`
     );
     if (base64Photo) {
-      fs.unlink(`src/assets/proccess/${fileName}.jpg`, error => {
+      fs.unlink(`${TMP_FOLDER}/${fileName}.jpg`, error => {
         if (error) {
           console.log("UnlinkError", error);
         }
       });
-      fs.unlink(`src/assets/proccess/${fileName}-output.png`, error => {
+      fs.unlink(`${TMP_FOLDER}/${fileName}-output.png`, error => {
         if (error) {
           console.log("UnlinkError", error);
         }
       });
-      fs.unlink(
-        `src/assets/proccess/${fileName}-output-template.jpg`,
-        error => {
-          if (error) {
-            console.log("UnlinkError", error);
-          }
+      fs.unlink(`${TMP_FOLDER}/${fileName}-output-template.jpg`, error => {
+        if (error) {
+          console.log("UnlinkError", error);
         }
-      );
-      fs.unlink(`src/assets/templates/${fileNameTemplate}`, error => {
+      });
+      fs.unlink(`${TMP_FOLDER}/${fileNameTemplate}`, error => {
         if (error) {
           console.log("UnlinkError", error);
         }
