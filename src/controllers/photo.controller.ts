@@ -6,7 +6,7 @@ import dayjs from "dayjs";
 import axios from "axios";
 import os from "os";
 
-const TMP_FOLDER = os.tmpdir() || "/tmp/";
+const TMP_FOLDER = "/tmp/";
 
 const download_image = (url: string, image_path: string) =>
   axios({
