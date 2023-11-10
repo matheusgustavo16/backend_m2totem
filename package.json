@@ -1,0 +1,47 @@
+{
+  "name": "m2totem-v1-backend",
+  "version": "1.0.0",
+  "main": "index.ts",
+  "author": "West Side Dev <companywestside@gmail.com>",
+  "license": "MIT",
+  "scripts": {
+    "dev": "ts-node-dev --transpile-only src/index.ts"
+  },
+  "dependencies": {
+    "@emailjs/nodejs": "^2.2.0",
+    "@pagarme/sdk": "^5.8.1",
+    "@types/bcrypt": "^5.0.0",
+    "@types/cors": "^2.8.14",
+    "@types/dotenv": "^8.2.0",
+    "@types/jsonwebtoken": "^9.0.2",
+    "@types/nodemailer": "^6.4.9",
+    "@types/pg": "^8.10.2",
+    "@types/request": "^2.48.12",
+    "axios": "^1.6.0",
+    "bcrypt": "^5.1.1",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "crypto": "^1.0.1",
+    "dayjs": "^1.11.9",
+    "dotenv": "^16.3.1",
+    "eventsource-parser": "^1.0.0",
+    "express": "^4.18.2",
+    "firebase": "^10.5.2",
+    "fs": "^0.0.1-security",
+    "jsonwebtoken": "^9.0.2",
+    "openai": "^4.6.0",
+    "pagarme": "^4.33.0",
+    "pg": "^8.11.3",
+    "react-slugify": "^3.0.2",
+    "rembg-node": "^2.0.1",
+    "request": "^2.88.2",
+    "sharp": "^0.32.6",
+    "slugify": "^1.6.6"
+  },
+  "devDependencies": {
+    "@types/express": "^4.17.17",
+    "@types/node": "^20.5.9",
+    "ts-node-dev": "^2.0.0",
+    "typescript": "^5.2.2"
+  }
+}
