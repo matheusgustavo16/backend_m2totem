@@ -6,7 +6,8 @@ import dayjs from "dayjs";
 import axios from "axios";
 import os from "os";
 
-const TMP_FOLDER = "/tmp/";
+const TMP_FOLDER = os.tmpdir() ? os.tmpdir() : "src/assets";
+// const TMP_FOLDER = "src/assets";
 
 const download_image = (url: string, image_path: string) =>
   axios({
@@ -26,6 +27,7 @@ const convertImageToBase64URL = (filename: string, imageType = "jpg") => {
   try {
     const buffer = fs.readFileSync(filename);
     const base64String = Buffer.from(buffer).toString("base64");
+    console.log("[BASE64] Imagem convertida em base64.", base64String);
     return `data:image/${imageType};base64,${base64String}`;
   } catch (error) {
     throw new Error(`file ${filename} no exist ❌`);
@@ -52,6 +54,7 @@ const compositeImages = async (image: string, template: string) => {
       })
       .normalise()
       .toFile(`${TMP_FOLDER}/${image}-output-template.jpg`);
+    console.log("[SHARP] Composite images successfully!");
   } catch (error) {
     console.log(error);
   }
@@ -59,7 +62,7 @@ const compositeImages = async (image: string, template: string) => {
 
 export const removeBg = async (req: Request, res: Response) => {
   try {
-    const { imageSrc, bgSrc, phraseSrc } = req.body;
+    const { imageSrc, bgSrc } = req.body;
     // SAVE TEMPORARY BACKGROUND PICTURE
     const fileNameTemplate: any = `temp-${dayjs().unix()}.jpg`;
     await download_image(bgSrc, `${TMP_FOLDER}/${fileNameTemplate}`);
@@ -97,12 +100,97 @@ export const removeBg = async (req: Request, res: Response) => {
           console.log("UnlinkError", error);
         }
       });
-      fs.unlink(`${TMP_FOLDER}/${fileName}-output-template.jpg`, error => {
+      /*fs.unlink(`${TMP_FOLDER}/${fileName}-output-template.jpg`, error => {
+        if (error) {
+          console.log("UnlinkError", error);
+        }
+      });*/
+      fs.unlink(`${TMP_FOLDER}/${fileNameTemplate}`, error => {
         if (error) {
           console.log("UnlinkError", error);
         }
       });
-      fs.unlink(`${TMP_FOLDER}/${fileNameTemplate}`, error => {
+    }
+    console.log("[FIM] Processo finalizado com sucesso!", base64Photo);
+    return res.status(201).json({ photo: base64Photo });
+  } catch (error) {
+    console.log("ERRROUYUUU", error);
+    return res
+      .status(500)
+      .json({ error: "Erro ao remover o background da imagem." });
+  }
+};
+
+export const applyPhraseToPicture = async (req: Request, res: Response) => {
+  try {
+    const { imageSrc, phraseSrc } = req.body;
+    // SAVE PHRASE TEMP
+    const filePhraseName: any = `temp-phrase-${dayjs().unix()}.png`;
+    await download_image(phraseSrc, `${TMP_FOLDER}/${filePhraseName}`);
+    // SAVE TEMPORARY CLIENT PICTURE
+    let base64Image = imageSrc.split(";base64,").pop();
+    const fileImageName: any = dayjs().unix();
+    await fs.writeFile(
+      `${TMP_FOLDER}/${fileImageName}.jpg`,
+      base64Image,
+      { encoding: "base64" },
+      function(err) {
+        console.log("File created");
+      }
+    );
+    // SHARP FUNCTIONS
+    try {
+      // RESIZE PHRASE TO DEFAULT
+      await sharp(`${TMP_FOLDER}/${filePhraseName}`)
+        .resize({
+          width: 800,
+          height: 600
+        })
+        .toFile(`${TMP_FOLDER}/resized-${filePhraseName}`);
+      // MISTURA AS DUAS
+      await sharp(`${TMP_FOLDER}/${fileImageName}.jpg`)
+        .resize({
+          width: 800,
+          height: 600
+        })
+        .composite([
+          {
+            input: `${TMP_FOLDER}/resized-${filePhraseName}`,
+            top: 0,
+            left: 0
+          }
+        ])
+        .resize({
+          width: 800,
+          height: 600
+        })
+        .normalise()
+        .toFile(`${TMP_FOLDER}/${fileImageName}-output-phrase.jpg`);
+    } catch (error) {
+      console.log("sharpError", error);
+    }
+    // SALVA O BASE 64, EXCLUIR E RETORNA
+    const base64Photo = convertImageToBase64URL(
+      `${TMP_FOLDER}/${fileImageName}-output-phrase.jpg`
+    );
+    // JOGA DE RALO AS IMAGENS GERADAS
+    if (base64Photo) {
+      fs.unlink(`${TMP_FOLDER}/${fileImageName}.jpg`, error => {
+        if (error) {
+          console.log("UnlinkError", error);
+        }
+      });
+      fs.unlink(`${TMP_FOLDER}/${filePhraseName}`, error => {
+        if (error) {
+          console.log("UnlinkError", error);
+        }
+      });
+      fs.unlink(`${TMP_FOLDER}/resized-${filePhraseName}`, error => {
+        if (error) {
+          console.log("UnlinkError", error);
+        }
+      });
+      fs.unlink(`${TMP_FOLDER}/${fileImageName}-output-phrase.jpg`, error => {
         if (error) {
           console.log("UnlinkError", error);
         }
@@ -113,7 +201,7 @@ export const removeBg = async (req: Request, res: Response) => {
     console.log("ERRROUYUUU", error);
     return res
       .status(500)
-      .json({ error: "Erro ao remover o background da imagem." });
+      .json({ error: "Erro ao aplicar a frase na imagem." });
   }
 };
 
