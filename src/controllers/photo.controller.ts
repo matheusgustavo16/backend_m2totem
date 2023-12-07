@@ -34,12 +34,16 @@ const convertImageToBase64URL = (filename: string, imageType = "jpg") => {
   }
 };
 
-const compositeImages = async (image: string, template: string) => {
+const compositeImages = async (
+  image: string,
+  template: string,
+  dimensions?: any
+) => {
   try {
     await sharp(`${TMP_FOLDER}/${template}`)
       .resize({
-        width: 800,
-        height: 600
+        width: dimensions.width,
+        height: dimensions.height
       })
       .composite([
         {
@@ -49,8 +53,8 @@ const compositeImages = async (image: string, template: string) => {
         }
       ])
       .resize({
-        width: 800,
-        height: 600
+        width: dimensions.width,
+        height: dimensions.height
       })
       .normalise()
       .toFile(`${TMP_FOLDER}/${image}-output-template.jpg`);
@@ -62,7 +66,17 @@ const compositeImages = async (image: string, template: string) => {
 
 export const removeBg = async (req: Request, res: Response) => {
   try {
-    const { imageSrc, bgSrc } = req.body;
+    const { imageSrc, bgSrc, orientation } = req.body;
+    const FINAL_DIMENSIONS =
+      orientation === "horizontal"
+        ? {
+            width: 1920,
+            height: 1080
+          }
+        : {
+            width: 1080,
+            height: 1920
+          };
     // SAVE TEMPORARY BACKGROUND PICTURE
     const fileNameTemplate: any = `temp-${dayjs().unix()}.jpg`;
     await download_image(bgSrc, `${TMP_FOLDER}/${fileNameTemplate}`);
@@ -82,9 +96,16 @@ export const removeBg = async (req: Request, res: Response) => {
       logging: true
     });
     const output = await remBg.remove(input);
-    await output.png().toFile(`${TMP_FOLDER}/${fileName}-output.png`);
+    await output
+      .resize({
+        width: FINAL_DIMENSIONS.width,
+        height: FINAL_DIMENSIONS.height,
+        kernel: "cubic"
+      })
+      .png()
+      .toFile(`${TMP_FOLDER}/${fileName}-output.png`);
     // APLICA O TEMPLATE
-    await compositeImages(fileName, fileNameTemplate);
+    await compositeImages(fileName, fileNameTemplate, FINAL_DIMENSIONS);
 
     const base64Photo = convertImageToBase64URL(
       `${TMP_FOLDER}/${fileName}-output-template.jpg`
@@ -123,7 +144,17 @@ export const removeBg = async (req: Request, res: Response) => {
 
 export const applyPhraseToPicture = async (req: Request, res: Response) => {
   try {
-    const { imageSrc, phraseSrc } = req.body;
+    const { imageSrc, phraseSrc, orientation } = req.body;
+    const FINAL_DIMENSIONS =
+      orientation === "horizontal"
+        ? {
+            width: 1920,
+            height: 1080
+          }
+        : {
+            width: 1080,
+            height: 1920
+          };
     // SAVE PHRASE TEMP
     const filePhraseName: any = `temp-phrase-${dayjs().unix()}.png`;
     await download_image(phraseSrc, `${TMP_FOLDER}/${filePhraseName}`);
@@ -143,15 +174,15 @@ export const applyPhraseToPicture = async (req: Request, res: Response) => {
       // RESIZE PHRASE TO DEFAULT
       await sharp(`${TMP_FOLDER}/${filePhraseName}`)
         .resize({
-          width: 800,
-          height: 600
+          width: FINAL_DIMENSIONS.width,
+          height: FINAL_DIMENSIONS.height
         })
         .toFile(`${TMP_FOLDER}/resized-${filePhraseName}`);
       // MISTURA AS DUAS
       await sharp(`${TMP_FOLDER}/${fileImageName}.jpg`)
         .resize({
-          width: 800,
-          height: 600
+          width: FINAL_DIMENSIONS.width,
+          height: FINAL_DIMENSIONS.height
         })
         .composite([
           {
@@ -161,8 +192,8 @@ export const applyPhraseToPicture = async (req: Request, res: Response) => {
           }
         ])
         .resize({
-          width: 800,
-          height: 600
+          width: FINAL_DIMENSIONS.width,
+          height: FINAL_DIMENSIONS.height
         })
         .normalise()
         .toFile(`${TMP_FOLDER}/${fileImageName}-output-phrase.jpg`);
